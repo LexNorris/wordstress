@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <limits.h>
 #include "geekbuild.h"
 #include "bintree.h"
 
@@ -17,17 +19,25 @@ int file = 0;
 
 
 FILE * openFile(char * heck, char * instructs){
+	char filepath[50] = "~";
+//	strcat(letter, ".bin");
 		heck[1] = '\0';
 		strcat(heck, ".bin");
-	return fopen(heck, instructs);
+//		strcat(filepath, heck);
+//		printf("%s\n", filepath);
+	int blah = chdir("/opt/wordstress/resources");
+	getcwd(filepath,sizeof(filepath));
+//		printf("HELLO. PRINT SOMETHING: %d %s\n", blah, filepath);
+return fopen(heck, instructs);
 }
 
 void preOrderAdd(FILE * ptr, struct Node * root){
 	if(root!=NULL){
-		printf("root->key: %s\n", root->key.word);
 		fwrite(&(root->key), sizeof(geek), 1, ptr);
+	//	printf("%s added\n", root->key.word);
 		preOrderAdd(ptr, root->left);
 		preOrderAdd(ptr, root->right);
+		free(root);
 	}
 }
 
@@ -52,6 +62,7 @@ void find(char * wordSearch){
 	geek * match = NULL;
 	strcpy(word, wordSearch);
 	printf("word: %s\n", word);
+	chdir("/opt/wordstress/resources");
 	FILE * ptr = openFile(wordSearch, "r");
 //	perror("file opened. Or should be.");
 	if(ptr != NULL){
@@ -63,7 +74,7 @@ void find(char * wordSearch){
 //	printf("word after openFile: %s\n", word);
 	root = readin(ptr, root);
 //	perror("tree loaded\n");
-	match = search(word, root);
+	match = UserSearch(word, root);
 	if(match!=NULL){
 		printf("%s\n", match->word);
 		for(int i = 0; i<match->patNum;i++){
@@ -79,39 +90,27 @@ void find(char * wordSearch){
 	}
 }
 
-
-
-//This no longer does the trick. WE need to ensure that we are adding this to the tree and then we are 
-	//How do we prevent duplicates? Do we simply write the entire inOrder list to the file? This seems a little bit
-	//	Lex, this is why we're breaking it up into letters. And remember that we do have bin files on our side. Of which we have only one open at a time. We will be okay.
-	//	I don't know. I don't like this.
-	//		Remember that binary trees are small data storage. It will be okay.
-	//		Fine.
 int addOne(int args, char * word, geek buffer){
 	struct Node * root = NULL;
-//	printf("%s\n", word);
-		//	perror("printf passed\n");
 	FILE * ptr = openFile(&word[0], "r+");	
 		if(!ptr){
 			printf("File %c not found, making new file\n", word[0]);
 			ptr = openFile(&word[0],"a");
+				if(!ptr) {
+					perror(&word[0]);
+					exit(EXIT_FAILURE);
+				}
 			fwrite(&buffer, sizeof(geek), 1, ptr);
 			fclose(ptr);
 			}
 		else{
-	//		strcpy(buffer.word, argv[3]);		
-		//	for(int i = 0; i<4; i++){
 		root = insert(root, &buffer);
 		root = readin(ptr, root);
-//			printf("addOne root word: %s\n", root->key.word);
+
 		ptr = openFile(&word[0], "w");
 		preOrderAdd(ptr, root);
 
 		fclose(ptr);
-//			fwrite(&buffer, sizeof(buffer), 1, ptr);
-		//	}
-		
-		//	printf("After copy: %s\n", buffer.word);
 		}
 		return 0;
 
@@ -122,6 +121,7 @@ int recursiveSearch(){
 }
 void list(char * letter){
 	letter[1] = '\0';
+	int blah = chdir("/opt/wordstress/resources");
 	strcat(letter, ".bin");
 //	printf("letter file: %s", letter);
 	FILE * ptr = fopen(letter, "r");
@@ -136,18 +136,16 @@ void list(char * letter){
 	}
 }
 
-//geek *
 geek rendLine(char * line){
 		//based partially on code from educative.io
-	//TODO: tear apart a given line to make a geek struct
-		//You can base this on your old CS449 project which you should still have access to.
+	
 	geek stress;
        	char word[25];	
 	int num = 0;
 	int blep = 0;
-	char *ptr;	//I don't know what this is
+	char *ptr;
 	char *token = strtok(line, " ");
-	printf("\n");
+//	printf("\n");
 	while(token != NULL){
 			if(num == 0){
 			stress.patNum = strtol(token, &ptr, 10);
@@ -162,25 +160,18 @@ geek rendLine(char * line){
 		++blep;
 			}
 		++num;
-		printf("%s ", token);
+//	printf("%s ", token);
 		token = strtok(NULL, " ");	
 	}
-	printf("%s ", word);
+//	printf("%s ", word);
 			addOne(1, word, stress);
-//		num = strtol(token,&ptr,10);
-			//
-		
-		//	printf("%ld\n", num);
-
 }
 
 int insertByFile(char * fp){
-	//TODO: open file
-	//
 	char * line = NULL;
 	size_t len = 0;
-	ssize_t read;
-	FILE * outof = fopen(fp, "r");	//This opens the file we are reading from
+	ssize_t read;		
+	FILE * outof = fopen(fp, "r");
 	geek * insert = NULL;
 		if (outof == NULL){
 			printf("please provide a valid filepath.\n");
@@ -198,42 +189,68 @@ int insertByFile(char * fp){
 	if(line){
 		free(line);
 	}
-	return 0;
-	//	FILE into = openFile(fp, "a");
-
-	//This is wrong.	Is it? Looks right to me.
-	//make a 7 dimensional array with
-	//1. number of stress patterns
-	//2. word
-	//3. stress pattern 1
-	//4. stress pattern 2
-	//5. stress pattern 3
-	//6. stress pattern 4
-	//7. stress pattern 5
-	//pass each of these individually to rendLine to make a geek struct
-	//pass geekstruct and word to addOne.
-	
+	return 0;	
 }
 
 
-//This should read a written piece word by word. We'll keep the most checked words in a smaller file.
 int readOutFile(char * fileName){
 	//Do we want it to make a new file wherever the function was called? Or do we simply want to output to the screen?
 	//What about a sentence? CAn we give it a sentence? What if we start with that?
 	//Yeah actually. That's a good plan
 }
 
+struct Node * modifiedReadin(char *word, FILE * ptr, struct Node * r){
+	fseek(ptr,0,SEEK_END);
+	int sz = ftell(ptr);
+	rewind(ptr);
 
+	geek blep[sz/sizeof(geek)];
+		int i = 0;
+	for(i = 0; fread(&blep[i], sizeof(geek), 1, ptr) ==1; i++){
+		if(strcmp(blep[i].word,word)!=0){
+		r = insert(r, &blep[i]);
+		}
+	}
+	fclose(ptr);
+	preOrder(r);
+	return r;
+}
+int deleteFromFile(char * wordRemove){
+	//open file for reading
+	char * word = malloc(sizeof(wordRemove));
+		printf("We past malloc\n");
+	struct Node * root = NULL;
+	geek * match = NULL;
+	strcpy(word, wordRemove);
+//	chdir("/opt/wordstress/resources");
+	FILE * ptr = openFile(wordRemove, "r+");
+		perror("file opened. Or should be.\n");
+	if(ptr != NULL){
+	root = modifiedReadin(word, ptr, root);
+	ptr = fopen("a.bin","w+");
+	preOrderAdd(ptr, root);
+	fclose(ptr);
+	}			
+		return 0;
+}
+
+int help(){
+
+	printf("Users may use the following flags:\n-a: add word\n-r: insert multiple wordsin series\n-f: insert by text file\n-s: search for a word\n-l: list words in a file. If no file specified, none will be listed.\n-h help\n\nFor more information refer to the README.md file associated with this project.\n");
+	return 0;
+}
 int main(int args, char* argv[]) {
 	char word[50];
 	if (args<2){
-		printf("That's not how you're supposed to play the game\n");
-	}
+		printf("Did you mean: *stress -help*?\n");	}
 	if(args == 2){
-
+		if(strcmp(argv[1],"-help")){
+				help();
+		}
 	}
 	if(args>=3){
 		if(strcmp(argv[1], "-a")==0){		//if tag is -a add the following word
+			//ACTUAL TODO: -a needs be under a different argument number
 			//TODO: check to ensure all arguments are in order and none are skipped. Maybe it is best to remove the recursive function for now until we can figure that out.
 		printf("%s\n", argv[3]);	
 			geek buff = toStress(argv);
@@ -241,6 +258,7 @@ int main(int args, char* argv[]) {
 			addOne(args, argv[3], buff);
 //				printf("Made it to -a\n");
 		}
+
 		if(strcmp(argv[1], "-r")==0){		//if tag is -r, add the following words.
 			printf("recursive\n");
 				geek blep[10];
@@ -279,9 +297,19 @@ int main(int args, char* argv[]) {
 			}
 		}
 		if(strcmp(argv[1], "-f") ==0){
-				printf("%s\n", argv[2]);
+				char fp[PATH_MAX];
+					if(getcwd(fp, sizeof(fp)) != NULL) {
+						strcat(fp, argv[2]);
+					}
+					else {
+						perror("Something went wrong. I know this was not helpful, but that's all I can tell you.\n");
+					}
+//				printf("%s\n", argv[2]);
 				insertByFile(argv[2]);
 				}
+		if(strcmp(argv[1],"-d") ==0){
+			deleteFromFile(argv[2]);
+		}
 	}
 }
 
